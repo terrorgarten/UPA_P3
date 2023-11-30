@@ -58,9 +58,9 @@ def scrape_links(driver, base_url, max_links):
     while len(product_links) < max_links:
         page_url = f"{base_url}/pn/{page_number}"
         print(page_url)
-        time.sleep(60)  # Wait for JavaScript to load
+        time.sleep(5)  # Wait for JavaScript to load
         driver.get(page_url)
-        time.sleep(60)  # Wait for JavaScript to load
+        time.sleep(5)  # Wait for JavaScript to load
         print(f"{len(product_links)} links scraped so far")
         links = driver.find_elements(By.CLASS_NAME, 'title_UCJ1nUFwhh')
 
