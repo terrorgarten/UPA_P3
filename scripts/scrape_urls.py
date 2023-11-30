@@ -1,48 +1,82 @@
-import requests
-from bs4 import BeautifulSoup
+# selenium_scrape_headless.py
+
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
 import time
 
 
-def fetch_html(url):
+def get_driver():
     """
-    Fetches the HTML content of a given URL.
-
-    :param url: URL to fetch content from.
-    :return: HTML content.
+    Initializes and returns a Selenium WebDriver in headless mode with a custom user agent.
     """
-    response = requests.get(url)
-    return response.text
+    chrome_options = Options()
+    chrome_options.add_argument('--headless')
+    chrome_options.add_argument('--no-sandbox')
+    chrome_options.add_argument('--disable-dev-shm-usage')
+
+    # Set a user agent - without this, the cloudflare antibot will block the request (responds with the waiting page)
+    user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36"
+    chrome_options.add_argument(f'user-agent={user_agent}')
+
+    driver = webdriver.Chrome(options=chrome_options)
+    return driver
 
 
-def parse_product_links(html_content, max_links):
+def print_html(driver, url):
     """
-    Parses the HTML content to extract product links.
+    Prints the HTML content of the given URL.
 
-    :param html_content: HTML content to parse.
-    :param max_links: Maximum number of product links to extract.
-    :return: List of product URLs.
+    :param driver: Selenium WebDriver.
+    :param url: URL to scrape content from.
     """
-    soup = BeautifulSoup(html_content, 'html.parser')
+    driver.get(url)
+    time.sleep(15)  # Wait for JavaScript to load
+    print(driver.page_source)
+
+def scrape_links(driver, base_url, max_links):
+    """
+    Uses Selenium WebDriver to scrape links from the given URL until it gets max_links.
+
+    :param driver: Selenium WebDriver.
+    :param base_url: Base URL to scrape content from.
+    :param max_links: Maximum number of product links to fetch.
+    """
     product_links = []
+    page_number = 2  # Starting from page 2 since the first page is already visited
 
-    for link in soup.find_all('a', href=True):
-        if len(product_links) < max_links and '/c/product/' in link['href']:
-            full_link = f"https://www.bhphotovideo.com{link['href']}"
-            if full_link not in product_links:
-                product_links.append(full_link)
+    # Visit the first page
+    driver.get(base_url)
+    time.sleep(15)  # Wait for JavaScript to load
+    links = driver.find_elements(By.CLASS_NAME, 'title_UCJ1nUFwhh')
+    for link in links:
+        product_links.append(link.get_attribute('href'))
+        print("Addindg initial")
+    print(f"afterfirst {len(product_links)} links scraped so far")
 
-    return product_links
+    # Visit subsequent pages
+    while len(product_links) < max_links:
+        page_url = f"{base_url}/pn/{page_number}"
+        print(page_url)
+        time.sleep(60)  # Wait for JavaScript to load
+        driver.get(page_url)
+        time.sleep(60)  # Wait for JavaScript to load
+        print(f"{len(product_links)} links scraped so far")
+        links = driver.find_elements(By.CLASS_NAME, 'title_UCJ1nUFwhh')
 
+        for link in links:
+            if len(product_links) < max_links:
+                product_links.append(link.get_attribute('href'))
+            else:
+                break
 
-if __name__ == "__main__":
-    url = 'https://www.bhphotovideo.com/c/buy/Digital-Cameras/ci/9811/N/4288586282'
-    html_content = fetch_html(url)
-    product_links = parse_product_links(html_content, 100)
+        page_number += 1
 
     for link in product_links:
         print(link)
 
-    # Optionally, write the links to a file
-    with open('data/urls.txt', 'w') as file:
-        for link in product_links:
-            file.write(link + '\n')
+
+if __name__ == "__main__":
+    driver = get_driver()
+    scrape_links(driver, 'https://www.bhphotovideo.com/c/buy/Digital-Cameras/ci/9811/N/4288586282', 100)
+    driver.quit()
