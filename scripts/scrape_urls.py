@@ -5,39 +5,10 @@ Author: Matěj Konopík, FIT BUT, matejkonopik@gmail.com
 Date: December 2023
 Python version: 3.11
 """
-
+from selenium_driver import get_driver
 from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 import time
-
-
-def get_driver():
-    """
-    Initializes and returns a Selenium WebDriver in headless mode with a custom user agent.
-    """
-    chrome_options = Options()
-    chrome_options.add_argument("--headless")
-    chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--disable-dev-shm-usage")
-
-    # Set a user agent - without this, the cloudflare antibot will block the request (responds with the waiting page)
-    user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36"
-    chrome_options.add_argument(f'user-agent={user_agent}')
-
-    return webdriver.Chrome(options=chrome_options)
-
-
-def print_html(driver, url):
-    """
-    Prints the HTML content of the given URL.
-
-    :param driver: Selenium WebDriver.
-    :param url: URL to scrape content from.
-    """
-    driver.get(url)
-    time.sleep(15)  # Wait for JavaScript to load
-    print(driver.page_source)
 
 
 def scrape_links(driver, base_url, max_links) -> list[str]:
@@ -52,16 +23,21 @@ def scrape_links(driver, base_url, max_links) -> list[str]:
 
     # Visit the first page
     driver.get(base_url)
-    time.sleep(5)  # Wait for JavaScript to load
+    print("Loading page 1 ...")
+    time.sleep(3)  # Wait for JavaScript to load
+    page_number = 2
     while len(product_links) < max_links:
         # Scrape all links from the current page
-        links = driver.find_elements(By.CLASS_NAME, "title_UCJ1nUFwhh")
+        links = driver.find_elements(By.CLASS_NAME, "product-item__title")
         for link in links:
-            product_links.append(link.get_attribute("href"))
+            link_string = link.get_attribute("href")
+            product_links.append(link_string)
 
-        # Click the next page button
-        next_page_button = driver.find_element(By.CLASS_NAME, "arrowLink_Mq9n1iP4rq")
-        driver.execute_script("arguments[0].click();", next_page_button)
+        # Visit next page
+        driver.get(f"https://thecamerastore.com/collections/mirrorless-system-cameras?page={page_number}")
+        print(f"Loading page {page_number} ...")
+        page_number += 1
+        print(len(product_links))
 
     return product_links
 
@@ -86,7 +62,7 @@ if __name__ == "__main__":
 
     links: list[str] = scrape_links(
         driver,
-        "https://www.bhphotovideo.com/c/buy/Digital-Cameras/ci/9811/N/4288586282",
+        "https://thecamerastore.com/collections/mirrorless-system-cameras",
         100)
     save_to_file(links, "../data/urls.txt")
 
