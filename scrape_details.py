@@ -74,7 +74,7 @@ def scrape_details(driver: webdriver, url: str) -> dict:
     return product_details
 
 
-def print_data(data: [dict]) -> None:
+def print_data(data: list) -> None:
     """
     Prints scraped data to stdout in a tab-separated format.
     :param data: List of dictionaries containing scraped data from product websites.
@@ -101,10 +101,10 @@ if __name__ == "__main__":
 
     # Create driver and read URLs from file
     driver = get_driver()
-    urls: [str] = read_urls(input_file)
+    urls = read_urls(input_file)
 
     # Scrape details from each URL
-    scraped_data: [dict] = []
+    scraped_data = []
     for url in urls:
         details = scrape_details(driver, url)
         if details:

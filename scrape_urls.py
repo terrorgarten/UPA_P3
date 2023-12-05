@@ -12,7 +12,7 @@ import time
 import sys
 
 
-def scrape_links(driver: webdriver, base_url: str, max_links: int, print_out: bool = False) -> list[str]:
+def scrape_links(driver: webdriver, base_url: str, max_links: int, print_out: bool = False) -> list:
     """
     Uses Selenium WebDriver to scrape links from the given URL until it gets max_links.
 
@@ -49,7 +49,7 @@ def scrape_links(driver: webdriver, base_url: str, max_links: int, print_out: bo
     return product_links
 
 
-def save_to_file(links: list[str], filename: str) -> None:
+def save_to_file(links: list, filename: str) -> None:
     """
     Saves the given list of links to a file.
 
@@ -67,7 +67,7 @@ def save_to_file(links: list[str], filename: str) -> None:
 if __name__ == "__main__":
     driver: webdriver = get_driver()
 
-    links: list[str] = scrape_links(
+    links: list = scrape_links(
         driver,
         "https://thecamerastore.com/collections/cameras?sort_by=best-selling&filter.p.m.search_filters.category=Compact+Cameras&filter.p.m.search_filters.category=Mirrorless+System+Cameras&filter.v.price.gte=&filter.v.price.lte=",
         100,
