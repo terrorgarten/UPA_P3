@@ -5,12 +5,11 @@ Author: Matěj Konopík, FIT BUT, matejkonopik@gmail.com
 Date: December 2023
 Python version: 3.11
 """
-import sys
-
 from selenium_driver import get_driver
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 import time
+import sys
 
 
 def scrape_links(driver: webdriver, base_url: str, max_links: int, print_out: bool = False) -> list[str]:
@@ -61,7 +60,7 @@ def save_to_file(links: list[str], filename: str) -> None:
         with open(filename, "w") as f:
             for link in links:
                 f.write(link + '\n')
-    except IOError as e:
+    except OSError as e:
         print(f"Error when attempting to write to a file {filename}: <{e}>")
 
 

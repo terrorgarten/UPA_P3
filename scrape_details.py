@@ -11,7 +11,6 @@ import sys
 from selenium_driver import get_driver
 from selenium.webdriver.common.by import By
 from selenium import webdriver
-import pandas as pd
 
 
 def read_urls(filename: str) -> list[str]:
@@ -20,8 +19,12 @@ def read_urls(filename: str) -> list[str]:
 
     :param filename: Name of the file to read from.
     """
-    with open(filename, 'r') as file:
-        return [line.strip() for line in file.readlines()]
+    try:
+        with open(filename, 'r') as file:
+            return [line.strip() for line in file.readlines()]
+    except OSError:
+        print(f"File '{filename}' not found.")
+        exit(1)
 
 
 def scrape_details(driver: webdriver, url: str) -> dict:
@@ -67,53 +70,40 @@ def scrape_details(driver: webdriver, url: str) -> dict:
 
                 return product_details
 
-    return product_details  # Return even if no 'Specifications' found
-
-
-def export_to_tsv(data: [dict], filename: str) -> None:
-    """
-    Exports a pandas DataFrame to a TSV file.
-    """
-    df = pd.DataFrame(data)
-    df.to_csv(filename, sep='\t', index=False)
+    # Return even if no 'Specifications' card found on the site.
+    return product_details
 
 
 def print_data(data: [dict]) -> None:
     """
     Prints scraped data to stdout in a tab-separated format.
     :param data: List of dictionaries containing scraped data from product websites.
-    :return: Nothing
+    :return: None.
     """
 
-    # Define the desired order for specific keys
     desired_order = ['url', 'product_name', 'price', 'stock_status']
 
-    # Extend the order with other keys found in the data, sorted alphabetically
-    # and not already in the desired_order
     additional_keys = sorted({k for d in data for k in d if k not in desired_order})
     sorted_keys = desired_order + additional_keys
 
     # Print each row in the specified order
     for d in data:
-        # Extract values in the order of sorted_keys, use empty string for missing keys
         row = [str(d.get(key, '')) for key in sorted_keys]
-        print('\t'.join(row))
+        print('\t'.join(row), file=sys.stdout)
 
 
 if __name__ == "__main__":
     try:
         input_file = sys.argv[1]
-        open(input_file, 'r')
     except IndexError:
         print("Please provide a file with URLs to scrape.")
         exit(1)
-    except OSError:
-        print(f"File {sys.argv[1]} not found.")
-        exit(1)
 
+    # Create driver and read URLs from file
     driver = get_driver()
     urls: [str] = read_urls(input_file)
 
+    # Scrape details from each URL
     scraped_data: [dict] = []
     for url in urls:
         details = scrape_details(driver, url)
@@ -121,5 +111,6 @@ if __name__ == "__main__":
             scraped_data.append(details)
 
     driver.quit()
-    # export_to_tsv(scraped_data, 'data.tsv')
+
+    # Print scraped data to stdout
     print_data(scraped_data)

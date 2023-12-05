@@ -3,9 +3,10 @@ This is the solution to the third project of the UPA course on FIT BUT.
 The goal of this project is to create a web scraper that will get the links to products and additional product information.
 
 ## Creators: Vidím ostře team
-- Matěj Konopík
-- Jakub Ryšánek
+- Matěj Konopík (matejkonopik@gmail.com)
+- Jakub Ryšánek ()
 - Krištof Šiška
+
 
 ## Scraped website
 We have decided to scrape digital camera products form the eshop [thecamerastore.com](https://www.thecamerastore.com/).
@@ -54,7 +55,3 @@ To see these results, use `run.sh`:
 ```
 ./run.sh
 ```
-
-## Details
-The example `data.tsv` file is the real output without headers, according to the assignemnt. To get a better file, you can se the `export_to_tsv` function in `scrape_details.py` to export the data with headers.
-Currently, it's commented out, because the assignment requires the file without headers.
