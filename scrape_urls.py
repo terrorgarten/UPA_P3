@@ -5,39 +5,47 @@ Author: Matěj Konopík, FIT BUT, matejkonopik@gmail.com
 Date: December 2023
 Python version: 3.11
 """
+import sys
+
 from selenium_driver import get_driver
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 import time
 
 
-def scrape_links(driver, base_url, max_links) -> list[str]:
+def scrape_links(driver: webdriver, base_url: str, max_links: int, print_out: bool = False) -> list[str]:
     """
     Uses Selenium WebDriver to scrape links from the given URL until it gets max_links.
 
+    :param print_out: Whether to print the links to stdout
     :param driver: Selenium WebDriver.
     :param base_url: Base URL to scrape content from.
     :param max_links: Maximum number of product links to fetch.
     """
     product_links = []
-
     # Visit the first page
     driver.get(base_url)
-    print("Loading page 1 ...")
-    time.sleep(3)  # Wait for JavaScript to load
+    # Wait for js load
+    time.sleep(2)
     page_number = 2
     while len(product_links) < max_links:
         # Scrape all links from the current page
         links = driver.find_elements(By.CLASS_NAME, "product-item__title")
         for link in links:
             link_string = link.get_attribute("href")
+            # Print to stdout if requested
+            if print_out:
+                print(link_string, file=sys.stdout)
+            # Break if we have enough links
+            if len(product_links) >= max_links:
+                return product_links
             product_links.append(link_string)
 
         # Visit next page
-        driver.get(f"https://thecamerastore.com/collections/mirrorless-system-cameras?page={page_number}")
-        print(f"Loading page {page_number} ...")
+        driver.get(f"https://thecamerastore.com/collections/cameras?sort_by=best-selling&filter.p.m.search_filters"
+                   f".category=Compact+Cameras&filter.p.m.search_filters.category=Mirrorless+System+Cameras&filter.v"
+                   f".price.gte=&filter.v.price.lte=&page={page_number}")
         page_number += 1
-        print(len(product_links))
 
     return product_links
 
@@ -62,10 +70,10 @@ if __name__ == "__main__":
 
     links: list[str] = scrape_links(
         driver,
-        "https://thecamerastore.com/collections/mirrorless-system-cameras",
-        100)
-    save_to_file(links, "../data/urls.txt")
+        "https://thecamerastore.com/collections/cameras?sort_by=best-selling&filter.p.m.search_filters.category=Compact+Cameras&filter.p.m.search_filters.category=Mirrorless+System+Cameras&filter.v.price.gte=&filter.v.price.lte=",
+        100,
+        True)
 
-    print(f"Scraped {len(links)} links.")
+    # save_to_file(links, "../data/urls.txt")
 
     driver.quit()
