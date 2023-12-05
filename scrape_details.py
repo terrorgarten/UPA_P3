@@ -1,7 +1,7 @@
 """
 File: scrape_details.py
 Description: Scrapes product details from camera detail pages listed in urls.txt.
-Author: Matěj Konopík, FIT BUT, matejkonopik@gmail.com
+Author: Matěj Konopik, FIT BUT, matejkonopik@gmail.com
 Date: December 2023
 Python version: 3.11
 """

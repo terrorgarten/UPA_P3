@@ -1,7 +1,7 @@
 """
 File: scrape_urls.py
 Description: Scrapes product links from the B&H Photo Video website.
-Author: Matěj Konopík, FIT BUT, matejkonopik@gmail.com
+Author: Matěj Konopik, FIT BUT, matejkonopik@gmail.com
 Date: December 2023
 Python version: 3.11
 """
