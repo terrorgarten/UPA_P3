@@ -13,7 +13,7 @@ from selenium.webdriver.common.by import By
 from selenium import webdriver
 
 
-def read_urls(filename: str) -> list[str]:
+def read_urls(filename: str) -> list:
     """
     Reads URLs from a file and returns them as a list.
 
