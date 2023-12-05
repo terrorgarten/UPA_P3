@@ -1,53 +1,55 @@
-"""
-File: scrape_urls.py
-Description: Scrapes product links from the B&H Photo Video website.
-Author: Matěj Konopik, FIT BUT, matejkonopik@gmail.com
-Date: December 2023
-Python version: 3.11
-"""
-from selenium_driver import get_driver
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-import time
+import requests
+from bs4 import BeautifulSoup
 import sys
+import time
 
-
-def scrape_links(driver: webdriver, base_url: str, max_links: int, print_out: bool = False) -> list:
+def scrape_links(prod_list_url: str, base_url: str, max_links: int, print_out: bool = False) -> list:
     """
-    Uses Selenium WebDriver to scrape links from the given URL until it gets max_links.
+    Scrapes product links from the given URL until it reaches max_links.
 
     :param print_out: Whether to print the links to stdout
-    :param driver: Selenium WebDriver.
-    :param base_url: Base URL to scrape content from.
+    :param prod_list_url: Base URL to scrape content from.
     :param max_links: Maximum number of product links to fetch.
     """
     product_links = []
-    # Visit the first page
-    driver.get(base_url)
-    # Wait for js load
-    time.sleep(2)
-    page_number = 2
-    while len(product_links) < max_links:
-        # Scrape all links from the current page
-        links = driver.find_elements(By.CLASS_NAME, "product-item__title")
-        for link in links:
-            link_string = link.get_attribute("href")
-            # Print to stdout if requested
-            if print_out:
-                print(link_string, file=sys.stdout)
-            # Break if we have enough links
-            if len(product_links) >= max_links:
-                return product_links
-            product_links.append(link_string)
+    page_number = 1
 
-        # Visit next page
-        driver.get(f"https://thecamerastore.com/collections/cameras?sort_by=best-selling&filter.p.m.search_filters"
-                   f".category=Compact+Cameras&filter.p.m.search_filters.category=Mirrorless+System+Cameras&filter.v"
-                   f".price.gte=&filter.v.price.lte=&page={page_number}")
-        page_number += 1
+    while len(product_links) < max_links:
+        # Construct the URL for the current page
+        url = f"{prod_list_url}&page={page_number}"
+
+        # Send an HTTP GET request to the URL
+        response = requests.get(url)
+
+        # Check if the request was successful
+        if response.status_code == 200:
+            soup = BeautifulSoup(response.text, 'html.parser')
+
+            # Find all links with the specified class
+            links = soup.find_all(class_="product-item__title")
+
+            for link in links:
+                link_string = base_url + link['href']
+
+                # Print to stdout if requested
+                if print_out:
+                    print(link_string, file=sys.stdout)
+
+                # Break if we have enough links
+                if len(product_links) >= max_links:
+                    return product_links
+
+                product_links.append(link_string)
+
+            page_number += 1
+
+            # Add a delay to avoid overwhelming the server with requests
+            time.sleep(2)
+        else:
+            print(f"Failed to retrieve page {page_number}. Status code: {response.status_code}")
+            break
 
     return product_links
-
 
 def save_to_file(links: list, filename: str) -> None:
     """
@@ -63,16 +65,12 @@ def save_to_file(links: list, filename: str) -> None:
     except OSError as e:
         print(f"Error when attempting to write to a file {filename}: <{e}>")
 
-
 if __name__ == "__main__":
-    driver: webdriver = get_driver()
+    base_url = "https://thecamerastore.com"
+    prod_list_url = "https://thecamerastore.com/collections/cameras?sort_by=best-selling&filter.p.m.search_filters.category=Mirrorless+System+Cameras&filter.v.price.gte=&filter.v.price.lte="
+    max_links = 100
 
-    links: list = scrape_links(
-        driver,
-        "https://thecamerastore.com/collections/cameras?sort_by=best-selling&filter.p.m.search_filters.category=Compact+Cameras&filter.p.m.search_filters.category=Mirrorless+System+Cameras&filter.v.price.gte=&filter.v.price.lte=",
-        100,
-        True)
+    links = scrape_links(prod_list_url, base_url, max_links, True)
 
+    # Uncomment the line below to save links to a file
     # save_to_file(links, "../data/urls.txt")
-
-    driver.quit()

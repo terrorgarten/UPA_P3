@@ -55,3 +55,6 @@ To see these results, use `run.sh`:
 ```
 ./run.sh
 ```
+
+## Details
+The scrape_details saves all the data in memory and then prints it out in the end. This is because we have also implemented a function that saves it directly to a file, using pandas dataframe. This could be potentially useful if we need to further work with a dataframe, but could be a downside, as the program could quite memory-hungry. This is a feature, not a bug ;).

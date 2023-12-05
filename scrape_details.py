@@ -1,16 +1,8 @@
-"""
-File: scrape_details.py
-Description: Scrapes product details from camera detail pages listed in urls.txt.
-Author: Matěj Konopik, FIT BUT, matejkonopik@gmail.com
-Date: December 2023
-Python version: 3.11
-"""
-import csv
 import sys
-
-from selenium_driver import get_driver
-from selenium.webdriver.common.by import By
-from selenium import webdriver
+import time
+import requests
+import pandas as pd
+from bs4 import BeautifulSoup
 
 
 def read_urls(filename: str) -> list:
@@ -27,60 +19,70 @@ def read_urls(filename: str) -> list:
         exit(1)
 
 
-def scrape_details(driver: webdriver, url: str) -> dict:
+def scrape_details(url: str) -> dict:
     """
     Scrapes the 'Specifications' card details from a given URL.
 
-    :param driver: Selenium WebDriver.
     :param url: URL to scrape details from.
     """
     wanted_specs = ["Video Resolution", "Dimensions", "Weight", "Recording Media", "Power Source", "ISO Sensitivity",
-                    "Lens Mount", "Shutter Speed", "Continuous Shooting Speed", "Sensor Resolution", "Resolution"]
+                    "Lens Mount", "Shutter Speed", "Continuous Shooting Speed", "Sensor Resolution"]
     product_details = {'url': url}
 
-    driver.get(url)
+    # Send an HTTP GET request to the URL
+    response = requests.get(url)
 
-    # get name, price and stock status
-    product_details["price"] = driver.find_element(By.CLASS_NAME, "price").text.removeprefix("Sale price\n")
-    product_details["stock_status"] = driver.find_element(By.CLASS_NAME, "product-form__inventory").text
-    product_details["product_name"] = driver.find_element(By.CLASS_NAME, "product-meta__title").text
+    # Check if the request was successful
+    if response.status_code == 200:
+        soup = BeautifulSoup(response.text, 'html.parser')
 
-    # handle product details from the 'Specifications' card
-    cards = driver.find_elements(By.CLASS_NAME, "card")
+        # Get product name, price, and stock status
+        product_details["product_name"] = soup.find("h1", class_="product-meta__title").text
+        product_details["price"] = soup.find("span", class_="price").text.replace("Sale price", "").replace("\n", "")
+        product_details["stock_status"] = soup.find("span", class_="product-form__inventory").text
 
-    for card in cards:
-        headers = card.find_elements(By.CLASS_NAME, "card__header")
-        for header in headers:
-            if "Specifications" in header.text:
-                card_body = card.find_element(By.CLASS_NAME, "card__section")
-                card_text = card_body.text
-
-                lines = card_text.split('\n')
-                for line in lines:
-                    if ': ' in line:
-                        key, value = line.split(': ', 1)
+        # Find and parse the 'Specifications' card
+        # Find the 'Specifications' card and parse its content
+        card_elements = soup.find_all("div", class_="card")
+        # Iterate through the 'card' elements
+        for card in card_elements:
+            header = card.find("div", class_="card__header")
+            # Check if the header contains "Specifications"
+            if header and "Specifications" in header.text:
+                card_text = card.find_next("div", class_="card__section").find("div", class_="rte text--pull")
+                # Extract and parse the inner text of the card
+                if card_text:
+                    spec_items = card_text.find_all("p")
+                    for item in spec_items:
+                        text = item.get_text(strip=True)
+                        key, value = text.split(':', 1)
                         key = key.strip()
                         value = value.strip()
                         if key in wanted_specs:
                             product_details[key] = value
-                if "Sensor Resolution" not in product_details and "Resolution" in product_details:
-                    product_details["Sensor Resolution"] = product_details["Resolution"]
-                if "Resolution" in product_details:
-                    del product_details["Resolution"]
+
+                    # Handle special case for 'Resolution' and 'Sensor Resolution'
+                    if "Resolution" in product_details and "Sensor Resolution" not in product_details:
+                        product_details["Sensor Resolution"] = product_details["Resolution"]
+                        del product_details["Resolution"]
 
                 return product_details
 
-    # Return even if no 'Specifications' card found on the site.
     return product_details
 
+def export_to_tsv(data: [dict], filename: str) -> None:
+    """
+    Exports a pandas DataFrame to a TSV file.
+    """
+    df = pd.DataFrame(data)
+    df.to_csv(filename, sep='\t', index=False)
 
 def print_data(data: list) -> None:
     """
     Prints scraped data to stdout in a tab-separated format.
-    :param data: List of dictionaries containing scraped data from product websites.
-    :return: None.
-    """
 
+    :param data: List of dictionaries containing scraped data from product websites.
+    """
     desired_order = ['url', 'product_name', 'price', 'stock_status']
 
     additional_keys = sorted({k for d in data for k in d if k not in desired_order})
@@ -99,18 +101,18 @@ if __name__ == "__main__":
         print("Please provide a file with URLs to scrape.")
         exit(1)
 
-    # Create driver and read URLs from file
-    driver = get_driver()
+    # Read URLs from file
     urls = read_urls(input_file)
 
     # Scrape details from each URL
     scraped_data = []
     for url in urls:
-        details = scrape_details(driver, url)
+        details = scrape_details(url)
         if details:
             scraped_data.append(details)
 
-    driver.quit()
+        # Add a delay to avoid overwhelming the server with requests
+        time.sleep(2)
 
     # Print scraped data to stdout
     print_data(scraped_data)
