@@ -22,7 +22,7 @@ It was also requested to save the data in a TSV file without headers, which shou
 - `C3`: Price
 - `C4`: Stock status (available, out of stock, etc.)
 - `C5`: Continuous shooting speed
-- `C6`: Sensor size
+- `C6`: Dimensions
 - `C7`: ISO range
 - `C8`: Lens mount
 - `C9`: Power source (battery)

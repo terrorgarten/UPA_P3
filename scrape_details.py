@@ -26,11 +26,15 @@ def scrape_details(url: str) -> dict:
     :param url: URL to scrape details from.
     """
     wanted_specs = ["Video Resolution", "Dimensions", "Weight", "Recording Media", "Power Source", "ISO Sensitivity",
-                    "Lens Mount", "Shutter Speed", "Continuous Shooting Speed", "Sensor Resolution"]
+                    "Lens Mount", "Shutter Speed", "Continuous Shooting Speed", "Sensor Resolution", "Resolution"]
     product_details = {'url': url}
 
     # Send an HTTP GET request to the URL
-    response = requests.get(url)
+    try:
+        response = requests.get(url)
+    except requests.exceptions.RequestException as e:
+        print("Error when attempting to send an HTTP request: <{e}>", file=sys.stderr)
+        return product_details
 
     # Check if the request was successful
     if response.status_code == 200:
@@ -42,33 +46,56 @@ def scrape_details(url: str) -> dict:
         product_details["stock_status"] = soup.find("span", class_="product-form__inventory").text
 
         # Find and parse the 'Specifications' card
-        # Find the 'Specifications' card and parse its content
         card_elements = soup.find_all("div", class_="card")
-        # Iterate through the 'card' elements
         for card in card_elements:
             header = card.find("div", class_="card__header")
-            # Check if the header contains "Specifications"
             if header and "Specifications" in header.text:
                 card_text = card.find_next("div", class_="card__section").find("div", class_="rte text--pull")
-                # Extract and parse the inner text of the card
                 if card_text:
                     spec_items = card_text.find_all("p")
-                    for item in spec_items:
-                        text = item.get_text(strip=True)
-                        key, value = text.split(':', 1)
-                        key = key.strip()
-                        value = value.strip()
-                        if key in wanted_specs:
-                            product_details[key] = value
 
-                    # Handle special case for 'Resolution' and 'Sensor Resolution'
-                    if "Resolution" in product_details and "Sensor Resolution" not in product_details:
-                        product_details["Sensor Resolution"] = product_details["Resolution"]
+                    # Special case - weird formatting
+                    if len(spec_items) == 1:
+                        specs = spec_items[0].decode_contents().split('<br/>')
+                        for spec in specs:
+                            if ':' in spec:
+                                key, value = spec.split(':', 1)
+                                key = key.strip().replace("<strong>", "")
+                                value = value.strip().replace("</strong>", "")
+                                if key in wanted_specs:
+
+                                    product_details[key] = value
+
+                    elif len(spec_items) == 0:
+                        specs = card_text.decode_contents().split('<br/>')
+                        for spec in specs:
+                            if ':' in spec:
+                                key, value = spec.split(':', 1)
+                                key = key.strip().replace("<strong>", "")
+                                value = value.strip().replace("</strong>", "")
+                                if key in wanted_specs:
+                                    product_details[key] = value
+
+                    # "Normal" case
+                    else:
+                        for item in spec_items:
+                            text = item.get_text(strip=True)
+                            key, value = text.split(':', 1)
+                            key = key.strip()
+                            value = value.strip()
+                            if key in wanted_specs:
+                                product_details[key] = value
+
+                    # Handle special case - "Resolution" and "Sensor Resolution" are the same thing
+                    if "Resolution" in product_details:
+                        if "Sensor Resolution" not in product_details:
+                            product_details["Sensor Resolution"] = product_details["Resolution"]
                         del product_details["Resolution"]
 
                 return product_details
 
     return product_details
+
 
 def export_to_tsv(data: [dict], filename: str) -> None:
     """
@@ -112,7 +139,7 @@ if __name__ == "__main__":
             scraped_data.append(details)
 
         # Add a delay to avoid overwhelming the server with requests
-        time.sleep(2)
+        time.sleep(1)
 
     # Print scraped data to stdout
     print_data(scraped_data)

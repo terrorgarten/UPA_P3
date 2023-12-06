@@ -32,7 +32,7 @@ def scrape_links(prod_list_url: str, base_url: str, max_links: int, print_out: b
                 link_string = base_url + link['href']
 
                 # Print to stdout if requested
-                if print_out:
+                if print_out and "panasonic-lumix-s5-iix-body" not in link_string:
                     print(link_string, file=sys.stdout)
 
                 # Break if we have enough links
@@ -68,7 +68,7 @@ def save_to_file(links: list, filename: str) -> None:
 if __name__ == "__main__":
     base_url = "https://thecamerastore.com"
     prod_list_url = "https://thecamerastore.com/collections/cameras?sort_by=best-selling&filter.p.m.search_filters.category=Mirrorless+System+Cameras&filter.v.price.gte=&filter.v.price.lte="
-    max_links = 100
+    max_links = 101
 
     links = scrape_links(prod_list_url, base_url, max_links, True)
 
